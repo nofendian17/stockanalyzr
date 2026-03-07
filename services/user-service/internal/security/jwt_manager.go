@@ -3,12 +3,16 @@ package security
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 
 	"stockanalyzr/services/user-service/internal/domain"
 )
+
+const blacklistPrefix = "jwt_bl:"
 
 // JWTManager generates and validates JWT access and refresh tokens.
 type JWTManager struct {
@@ -16,14 +20,16 @@ type JWTManager struct {
 	issuer                 string
 	accessExpiryInMinutes  int
 	refreshExpiryInMinutes int
+	redisClient            *redis.Client
 }
 
-func NewJWTManager(secret, issuer string, accessExpiryMinutes, refreshExpiryMinutes int) *JWTManager {
+func NewJWTManager(secret, issuer string, accessExpiryMinutes, refreshExpiryMinutes int, rds *redis.Client) *JWTManager {
 	return &JWTManager{
 		secretKey:              []byte(secret),
 		issuer:                 issuer,
 		accessExpiryInMinutes:  accessExpiryMinutes,
 		refreshExpiryInMinutes: refreshExpiryMinutes,
+		redisClient:            rds,
 	}
 }
 
@@ -53,7 +59,13 @@ func (m *JWTManager) CreateTokenPair(_ context.Context, userID string) (domain.T
 	}, nil
 }
 
-func (m *JWTManager) ValidateAccessToken(_ context.Context, tokenString string) (string, error) {
+func (m *JWTManager) ValidateAccessToken(ctx context.Context, tokenString string) (string, error) {
+	// First check if token is blacklisted
+	isBlacklisted, err := m.redisClient.Exists(ctx, blacklistPrefix+tokenString).Result()
+	if err == nil && isBlacklisted > 0 {
+		return "", errors.New("token is revoked")
+	}
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -75,6 +87,31 @@ func (m *JWTManager) ValidateAccessToken(_ context.Context, tokenString string) 
 	}
 
 	return sub, nil
+}
+
+func (m *JWTManager) RevokeToken(ctx context.Context, tokenString string) error {
+	// Parse token just to get expiration time so we know how long to keep it in redis
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return m.secretKey, nil
+	})
+
+	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
+		return fmt.Errorf("failed to parse token for revocation: %w", err)
+	}
+
+	var ttl time.Duration
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if expFloat, ok := claims["exp"].(float64); ok {
+			expTime := time.Unix(int64(expFloat), 0)
+			ttl = time.Until(expTime)
+		}
+	}
+
+	if ttl <= 0 {
+		return nil // Already expired, no need to blacklist
+	}
+
+	return m.redisClient.Set(ctx, blacklistPrefix+tokenString, "true", ttl).Err()
 }
 
 func (m *JWTManager) signToken(userID, tokenType string, now, expiry time.Time) (string, error) {

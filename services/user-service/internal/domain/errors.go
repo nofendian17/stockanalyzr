@@ -9,4 +9,6 @@ var (
 	ErrEmailAlreadyExists = errors.New("email already exists")
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrUserDisabled       = errors.New("user account is disabled")
+	ErrUserAlreadyDeleted = errors.New("user already deleted")
+	ErrUserNotDeleted     = errors.New("user not deleted")
 )

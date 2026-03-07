@@ -41,6 +41,21 @@ func (m *MockUserUsecase) EXPECT() *MockUserUsecaseMockRecorder {
 	return m.recorder
 }
 
+// GetDeletedUsers mocks base method.
+func (m *MockUserUsecase) GetDeletedUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDeletedUsers", ctx, limit, offset)
+	ret0, _ := ret[0].([]domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDeletedUsers indicates an expected call of GetDeletedUsers.
+func (mr *MockUserUsecaseMockRecorder) GetDeletedUsers(ctx, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeletedUsers", reflect.TypeOf((*MockUserUsecase)(nil).GetDeletedUsers), ctx, limit, offset)
+}
+
 // GetProfile mocks base method.
 func (m *MockUserUsecase) GetProfile(ctx context.Context, userID string) (domain.User, error) {
 	m.ctrl.T.Helper()
@@ -72,32 +87,74 @@ func (mr *MockUserUsecaseMockRecorder) Login(ctx, email, password any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockUserUsecase)(nil).Login), ctx, email, password)
 }
 
-// Register mocks base method.
-func (m *MockUserUsecase) Register(ctx context.Context, email, password, fullName string) (domain.User, error) {
+// Logout mocks base method.
+func (m *MockUserUsecase) Logout(ctx context.Context, token string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Register", ctx, email, password, fullName)
+	ret := m.ctrl.Call(m, "Logout", ctx, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Logout indicates an expected call of Logout.
+func (mr *MockUserUsecaseMockRecorder) Logout(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockUserUsecase)(nil).Logout), ctx, token)
+}
+
+// Register mocks base method.
+func (m *MockUserUsecase) Register(ctx context.Context, email, password, fullName, phoneNumber string) (domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Register", ctx, email, password, fullName, phoneNumber)
 	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Register indicates an expected call of Register.
-func (mr *MockUserUsecaseMockRecorder) Register(ctx, email, password, fullName any) *gomock.Call {
+func (mr *MockUserUsecaseMockRecorder) Register(ctx, email, password, fullName, phoneNumber any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUserUsecase)(nil).Register), ctx, email, password, fullName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUserUsecase)(nil).Register), ctx, email, password, fullName, phoneNumber)
+}
+
+// RestoreUser mocks base method.
+func (m *MockUserUsecase) RestoreUser(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RestoreUser", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RestoreUser indicates an expected call of RestoreUser.
+func (mr *MockUserUsecaseMockRecorder) RestoreUser(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreUser", reflect.TypeOf((*MockUserUsecase)(nil).RestoreUser), ctx, userID)
+}
+
+// SoftDeleteUser mocks base method.
+func (m *MockUserUsecase) SoftDeleteUser(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SoftDeleteUser", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SoftDeleteUser indicates an expected call of SoftDeleteUser.
+func (mr *MockUserUsecaseMockRecorder) SoftDeleteUser(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftDeleteUser", reflect.TypeOf((*MockUserUsecase)(nil).SoftDeleteUser), ctx, userID)
 }
 
 // UpdateProfile mocks base method.
-func (m *MockUserUsecase) UpdateProfile(ctx context.Context, userID, fullName string) (domain.User, error) {
+func (m *MockUserUsecase) UpdateProfile(ctx context.Context, userID, fullName, phoneNumber string) (domain.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateProfile", ctx, userID, fullName)
+	ret := m.ctrl.Call(m, "UpdateProfile", ctx, userID, fullName, phoneNumber)
 	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateProfile indicates an expected call of UpdateProfile.
-func (mr *MockUserUsecaseMockRecorder) UpdateProfile(ctx, userID, fullName any) *gomock.Call {
+func (mr *MockUserUsecaseMockRecorder) UpdateProfile(ctx, userID, fullName, phoneNumber any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProfile", reflect.TypeOf((*MockUserUsecase)(nil).UpdateProfile), ctx, userID, fullName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProfile", reflect.TypeOf((*MockUserUsecase)(nil).UpdateProfile), ctx, userID, fullName, phoneNumber)
 }

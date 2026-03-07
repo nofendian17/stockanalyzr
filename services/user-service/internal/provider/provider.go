@@ -53,7 +53,8 @@ var Package = do.Package(
 
 	do.Lazy(func(i do.Injector) (*security.JWTManager, error) {
 		cfg := do.MustInvoke[*config.Config](i)
-		return security.NewJWTManager(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTAccessExpiryMinutes, cfg.JWTRefreshExpiryMinutes), nil
+		rds := do.MustInvoke[*cache.Redis](i)
+		return security.NewJWTManager(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTAccessExpiryMinutes, cfg.JWTRefreshExpiryMinutes, rds.Client), nil
 	}),
 	do.Bind[*security.JWTManager, domain.TokenManager](),
 

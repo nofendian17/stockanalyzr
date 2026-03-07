@@ -9,6 +9,9 @@ service UserService {
 	rpc Login(LoginRequest) returns (LoginResponse);
 	rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
 	rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+	rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
+	rpc RestoreUser(RestoreUserRequest) returns (RestoreUserResponse);
+	rpc GetDeletedUsers(GetDeletedUsersRequest) returns (GetDeletedUsersResponse);
 }
 
 message User {
@@ -18,6 +21,8 @@ message User {
 	bool disabled = 4;
 	int64 created_at_unix_ms = 5;
 	int64 updated_at_unix_ms = 6;
+	string phone_number = 7;
+	optional int64 deleted_at_unix_ms = 8;
 }
 
 message AuthToken {
@@ -31,6 +36,7 @@ message RegisterRequest {
 	string email = 1;
 	string password = 2;
 	string full_name = 3;
+	string phone_number = 4;
 }
 
 message RegisterResponse {
@@ -47,6 +53,13 @@ message LoginResponse {
 	AuthToken auth_token = 2;
 }
 
+message LogoutRequest {
+}
+
+message LogoutResponse {
+	bool success = 1;
+}
+
 message GetProfileRequest {
 	string user_id = 1;
 }
@@ -58,8 +71,35 @@ message GetProfileResponse {
 message UpdateProfileRequest {
 	string user_id = 1;
 	string full_name = 2;
+	string phone_number = 3;
 }
 
 message UpdateProfileResponse {
 	User user = 1;
+}
+
+message SoftDeleteUserRequest {
+	string user_id = 1;
+}
+
+message SoftDeleteUserResponse {
+	bool success = 1;
+}
+
+message RestoreUserRequest {
+	string user_id = 1;
+}
+
+message RestoreUserResponse {
+	User user = 1;
+}
+
+message GetDeletedUsersRequest {
+	int32 limit = 1;
+	int32 offset = 2;
+}
+
+message GetDeletedUsersResponse {
+	repeated User users = 1;
+	int32 total = 2;
 }

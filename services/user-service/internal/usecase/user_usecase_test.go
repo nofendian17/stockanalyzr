@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"stockanalyzr/pkg/validator"
@@ -45,16 +47,11 @@ func TestRegister_Success(t *testing.T) {
 	})
 	cache.EXPECT().Set(ctx, gomock.Any()).Return(nil)
 
-	user, err := uc.Register(ctx, "test@example.com", "password123", "Test User")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if user.Email != "test@example.com" {
-		t.Errorf("expected email test@example.com, got %s", user.Email)
-	}
-	if user.Disabled {
-		t.Error("expected user not disabled")
-	}
+	user, err := uc.Register(ctx, "test@example.com", "password123", "Test User", "+1234567890")
+	require.NoError(t, err)
+	assert.Equal(t, "test@example.com", user.Email)
+	assert.Equal(t, "+1234567890", user.PhoneNumber)
+	assert.False(t, user.Disabled)
 }
 
 func TestRegister_DuplicateEmail(t *testing.T) {
@@ -63,10 +60,8 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 
 	repo.EXPECT().GetByEmail(ctx, "existing@example.com").Return(domain.User{Email: "existing@example.com"}, nil)
 
-	_, err := uc.Register(ctx, "existing@example.com", "password123", "Test")
-	if err != domain.ErrEmailAlreadyExists {
-		t.Fatalf("expected ErrEmailAlreadyExists, got %v", err)
-	}
+	_, err := uc.Register(ctx, "existing@example.com", "password123", "Test", "+123")
+	require.ErrorIs(t, err, domain.ErrEmailAlreadyExists)
 }
 
 func TestRegister_InvalidInput(t *testing.T) {
@@ -74,23 +69,23 @@ func TestRegister_InvalidInput(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name     string
-		email    string
-		password string
-		fullName string
+		name        string
+		email       string
+		password    string
+		fullName    string
+		phoneNumber string
 	}{
-		{"empty email", "", "password123", "Name"},
-		{"invalid email", "notanemail", "password123", "Name"},
-		{"short password", "test@example.com", "short", "Name"},
-		{"empty name", "test@example.com", "password123", ""},
+		{"empty email", "", "password123", "Name", "+123"},
+		{"invalid email", "notanemail", "password123", "Name", "+123"},
+		{"short password", "test@example.com", "short", "Name", "+123"},
+		{"empty name", "test@example.com", "password123", "", "+123"},
+		{"empty phone", "test@example.com", "password123", "Name", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := uc.Register(ctx, tt.email, tt.password, tt.fullName)
-			if err != domain.ErrInvalidInput {
-				t.Fatalf("expected ErrInvalidInput, got %v", err)
-			}
+			_, err := uc.Register(ctx, tt.email, tt.password, tt.fullName, tt.phoneNumber)
+			require.ErrorIs(t, err, domain.ErrInvalidInput)
 		})
 	}
 }
@@ -119,18 +114,10 @@ func TestLogin_Success(t *testing.T) {
 	tokenMgr.EXPECT().CreateTokenPair(ctx, "user-123").Return(expectedTokenPair, nil)
 
 	user, tokenPair, err := uc.Login(ctx, "test@example.com", "password123")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if tokenPair.AccessToken != "access-jwt" {
-		t.Errorf("expected access-jwt, got %s", tokenPair.AccessToken)
-	}
-	if tokenPair.RefreshToken != "refresh-jwt" {
-		t.Errorf("expected refresh-jwt, got %s", tokenPair.RefreshToken)
-	}
-	if user.ID != "user-123" {
-		t.Errorf("expected user-123, got %s", user.ID)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "access-jwt", tokenPair.AccessToken)
+	assert.Equal(t, "refresh-jwt", tokenPair.RefreshToken)
+	assert.Equal(t, "user-123", user.ID)
 }
 
 func TestLogin_UserNotFound(t *testing.T) {
@@ -140,9 +127,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 	repo.EXPECT().GetByEmail(ctx, "unknown@example.com").Return(domain.User{}, domain.ErrUserNotFound)
 
 	_, _, err := uc.Login(ctx, "unknown@example.com", "password123")
-	if err != domain.ErrInvalidCredential {
-		t.Fatalf("expected ErrInvalidCredential, got %v", err)
-	}
+	require.ErrorIs(t, err, domain.ErrInvalidCredential)
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
@@ -159,9 +144,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	hasher.EXPECT().Compare("hashed", "wrongpassword").Return(domain.ErrInvalidCredential)
 
 	_, _, err := uc.Login(ctx, "test@example.com", "wrongpassword")
-	if err != domain.ErrInvalidCredential {
-		t.Fatalf("expected ErrInvalidCredential, got %v", err)
-	}
+	require.ErrorIs(t, err, domain.ErrInvalidCredential)
 }
 
 func TestLogin_UserDisabled(t *testing.T) {
@@ -177,9 +160,7 @@ func TestLogin_UserDisabled(t *testing.T) {
 	repo.EXPECT().GetByEmail(ctx, "disabled@example.com").Return(disabledUser, nil)
 
 	_, _, err := uc.Login(ctx, "disabled@example.com", "password123")
-	if err != domain.ErrUserDisabled {
-		t.Fatalf("expected ErrUserDisabled, got %v", err)
-	}
+	require.ErrorIs(t, err, domain.ErrUserDisabled)
 }
 
 func TestGetProfile_CacheHit(t *testing.T) {
@@ -190,12 +171,8 @@ func TestGetProfile_CacheHit(t *testing.T) {
 	cache.EXPECT().Get(ctx, "user-123").Return(cachedUser, nil)
 
 	user, err := uc.GetProfile(ctx, "user-123")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if user.ID != "user-123" {
-		t.Errorf("expected user-123, got %s", user.ID)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "user-123", user.ID)
 }
 
 func TestGetProfile_CacheMiss(t *testing.T) {
@@ -208,12 +185,8 @@ func TestGetProfile_CacheMiss(t *testing.T) {
 	cache.EXPECT().Set(ctx, dbUser).Return(nil)
 
 	user, err := uc.GetProfile(ctx, "user-123")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if user.ID != "user-123" {
-		t.Errorf("expected user-123, got %s", user.ID)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "user-123", user.ID)
 }
 
 func TestGetProfile_NotFound(t *testing.T) {
@@ -224,39 +197,190 @@ func TestGetProfile_NotFound(t *testing.T) {
 	repo.EXPECT().GetByID(ctx, "unknown").Return(domain.User{}, domain.ErrUserNotFound)
 
 	_, err := uc.GetProfile(ctx, "unknown")
-	if err != domain.ErrUserNotFound {
-		t.Fatalf("expected ErrUserNotFound, got %v", err)
-	}
+	require.ErrorIs(t, err, domain.ErrUserNotFound)
 }
 
 func TestUpdateProfile_Success(t *testing.T) {
 	uc, repo, cache, _, _ := newTestUsecase(t)
 	ctx := context.Background()
 
-	updatedUser := domain.User{ID: "user-123", FullName: "New Name"}
-	repo.EXPECT().UpdateProfile(ctx, "user-123", "New Name", gomock.Any()).Return(updatedUser, nil)
+	updatedUser := domain.User{ID: "user-123", FullName: "New Name", PhoneNumber: "+1234"}
+	repo.EXPECT().UpdateProfile(ctx, "user-123", "New Name", "+1234", gomock.Any()).Return(updatedUser, nil)
 	cache.EXPECT().Delete(ctx, "user-123").Return(nil)
 
-	user, err := uc.UpdateProfile(ctx, "user-123", "New Name")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if user.FullName != "New Name" {
-		t.Errorf("expected New Name, got %s", user.FullName)
-	}
+	user, err := uc.UpdateProfile(ctx, "user-123", "New Name", "+1234")
+	require.NoError(t, err)
+	assert.Equal(t, "New Name", user.FullName)
+	assert.Equal(t, "+1234", user.PhoneNumber)
 }
 
 func TestUpdateProfile_InvalidInput(t *testing.T) {
 	uc, _, _, _, _ := newTestUsecase(t)
 	ctx := context.Background()
 
-	_, err := uc.UpdateProfile(ctx, "", "Name")
-	if err != domain.ErrInvalidInput {
-		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	_, err := uc.UpdateProfile(ctx, "", "Name", "+123")
+	require.ErrorIs(t, err, domain.ErrInvalidInput)
+
+	_, err = uc.UpdateProfile(ctx, "user-123", "", "+123")
+	require.ErrorIs(t, err, domain.ErrInvalidInput)
+
+	_, err = uc.UpdateProfile(ctx, "user-123", "Name", "")
+	require.ErrorIs(t, err, domain.ErrInvalidInput)
+}
+
+func TestLogout_Success(t *testing.T) {
+	uc, _, _, _, tokenMgr := newTestUsecase(t)
+	ctx := context.Background()
+
+	tokenMgr.EXPECT().RevokeToken(ctx, "valid-token").Return(nil)
+
+	err := uc.Logout(ctx, "valid-token")
+	require.NoError(t, err)
+}
+
+func TestLogout_InvalidInput(t *testing.T) {
+	uc, _, _, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+
+	err := uc.Logout(ctx, "   ")
+	require.ErrorIs(t, err, domain.ErrInvalidInput)
+}
+
+func TestSoftDeleteUser_Success(t *testing.T) {
+	uc, repo, cache, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+	userID := "user123"
+
+	// Mock existing user (not deleted)
+	existingUser := domain.User{
+		ID:        userID,
+		Email:     "test@example.com",
+		DeletedAt: nil,
 	}
 
-	_, err = uc.UpdateProfile(ctx, "user-123", "")
-	if err != domain.ErrInvalidInput {
-		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
+	repo.EXPECT().SoftDelete(ctx, userID, gomock.Any()).Return(nil)
+	cache.EXPECT().Delete(ctx, userID).Return(nil)
+
+	err := uc.SoftDeleteUser(ctx, userID)
+	assert.NoError(t, err)
+}
+
+func TestSoftDeleteUser_AlreadyDeleted(t *testing.T) {
+	uc, repo, _, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+	userID := "user123"
+	deletedAt := time.Now().UTC()
+
+	// Mock existing user (already deleted)
+	existingUser := domain.User{
+		ID:        userID,
+		Email:     "test@example.com",
+		DeletedAt: &deletedAt,
 	}
+
+	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
+
+	err := uc.SoftDeleteUser(ctx, userID)
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrUserAlreadyDeleted, err)
+}
+
+func TestSoftDeleteUser_UserNotFound(t *testing.T) {
+	uc, repo, _, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+	userID := "user123"
+
+	repo.EXPECT().GetByID(ctx, userID).Return(domain.User{}, domain.ErrUserNotFound)
+
+	err := uc.SoftDeleteUser(ctx, userID)
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrUserNotFound, err)
+}
+
+func TestRestoreUser_Success(t *testing.T) {
+	uc, repo, cache, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+	userID := "user123"
+	deletedAt := time.Now().UTC()
+
+	// Mock existing user (deleted)
+	existingUser := domain.User{
+		ID:        userID,
+		Email:     "test@example.com",
+		DeletedAt: &deletedAt,
+	}
+
+	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
+	repo.EXPECT().Restore(ctx, userID).Return(nil)
+	cache.EXPECT().Delete(ctx, userID).Return(nil)
+
+	err := uc.RestoreUser(ctx, userID)
+	assert.NoError(t, err)
+}
+
+func TestRestoreUser_NotDeleted(t *testing.T) {
+	uc, repo, _, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+	userID := "user123"
+
+	// Mock existing user (not deleted)
+	existingUser := domain.User{
+		ID:        userID,
+		Email:     "test@example.com",
+		DeletedAt: nil,
+	}
+
+	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
+
+	err := uc.RestoreUser(ctx, userID)
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrUserNotDeleted, err)
+}
+
+func TestGetDeletedUsers_Success(t *testing.T) {
+	uc, repo, _, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+
+	deletedAt := time.Now().UTC()
+	deletedUsers := []domain.User{
+		{
+			ID:        "user1",
+			Email:     "deleted1@example.com",
+			DeletedAt: &deletedAt,
+		},
+		{
+			ID:        "user2",
+			Email:     "deleted2@example.com",
+			DeletedAt: &deletedAt,
+		},
+	}
+
+	repo.EXPECT().GetDeletedUsers(ctx, 10, 0).Return(deletedUsers, nil)
+
+	users, err := uc.GetDeletedUsers(ctx, 10, 0)
+	require.NoError(t, err)
+	assert.Len(t, users, 2)
+	assert.True(t, users[0].IsDeleted())
+	assert.True(t, users[1].IsDeleted())
+}
+
+func TestGetDeletedUsers_InvalidInput(t *testing.T) {
+	uc, _, _, _, _ := newTestUsecase(t)
+	ctx := context.Background()
+
+	// Test with invalid limit
+	_, err := uc.GetDeletedUsers(ctx, 0, 0)
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrInvalidInput, err)
+
+	// Test with invalid limit > 100
+	_, err = uc.GetDeletedUsers(ctx, 101, 0)
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrInvalidInput, err)
+
+	// Test with negative offset
+	_, err = uc.GetDeletedUsers(ctx, 10, -1)
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrInvalidInput, err)
 }

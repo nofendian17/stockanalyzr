@@ -87,17 +87,60 @@ func (mr *MockUserRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockUserRepository)(nil).GetByID), ctx, id)
 }
 
-// UpdateProfile mocks base method.
-func (m *MockUserRepository) UpdateProfile(ctx context.Context, id, fullName string, updatedAt time.Time) (domain.User, error) {
+// GetDeletedUsers mocks base method.
+func (m *MockUserRepository) GetDeletedUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateProfile", ctx, id, fullName, updatedAt)
+	ret := m.ctrl.Call(m, "GetDeletedUsers", ctx, limit, offset)
+	ret0, _ := ret[0].([]domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDeletedUsers indicates an expected call of GetDeletedUsers.
+func (mr *MockUserRepositoryMockRecorder) GetDeletedUsers(ctx, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeletedUsers", reflect.TypeOf((*MockUserRepository)(nil).GetDeletedUsers), ctx, limit, offset)
+}
+
+// Restore mocks base method.
+func (m *MockUserRepository) Restore(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Restore", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Restore indicates an expected call of Restore.
+func (mr *MockUserRepositoryMockRecorder) Restore(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Restore", reflect.TypeOf((*MockUserRepository)(nil).Restore), ctx, id)
+}
+
+// SoftDelete mocks base method.
+func (m *MockUserRepository) SoftDelete(ctx context.Context, id string, deletedAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SoftDelete", ctx, id, deletedAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SoftDelete indicates an expected call of SoftDelete.
+func (mr *MockUserRepositoryMockRecorder) SoftDelete(ctx, id, deletedAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftDelete", reflect.TypeOf((*MockUserRepository)(nil).SoftDelete), ctx, id, deletedAt)
+}
+
+// UpdateProfile mocks base method.
+func (m *MockUserRepository) UpdateProfile(ctx context.Context, id, fullName, phoneNumber string, updatedAt time.Time) (domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateProfile", ctx, id, fullName, phoneNumber, updatedAt)
 	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateProfile indicates an expected call of UpdateProfile.
-func (mr *MockUserRepositoryMockRecorder) UpdateProfile(ctx, id, fullName, updatedAt any) *gomock.Call {
+func (mr *MockUserRepositoryMockRecorder) UpdateProfile(ctx, id, fullName, phoneNumber, updatedAt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProfile", reflect.TypeOf((*MockUserRepository)(nil).UpdateProfile), ctx, id, fullName, updatedAt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProfile", reflect.TypeOf((*MockUserRepository)(nil).UpdateProfile), ctx, id, fullName, phoneNumber, updatedAt)
 }

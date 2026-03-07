@@ -8,7 +8,9 @@ type User struct {
 	Email        string
 	PasswordHash string
 	FullName     string
+	PhoneNumber  string
 	Disabled     bool
+	DeletedAt    *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -19,4 +21,9 @@ type TokenPair struct {
 	AccessTokenExpiresAt  time.Time
 	RefreshToken          string
 	RefreshTokenExpiresAt time.Time
+}
+
+// IsDeleted returns true if user is soft deleted
+func (u User) IsDeleted() bool {
+	return u.DeletedAt != nil
 }

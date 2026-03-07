@@ -109,6 +109,20 @@ func (mr *MockTokenManagerMockRecorder) CreateTokenPair(ctx, userID any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTokenPair", reflect.TypeOf((*MockTokenManager)(nil).CreateTokenPair), ctx, userID)
 }
 
+// RevokeToken mocks base method.
+func (m *MockTokenManager) RevokeToken(ctx context.Context, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeToken", ctx, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeToken indicates an expected call of RevokeToken.
+func (mr *MockTokenManagerMockRecorder) RevokeToken(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeToken", reflect.TypeOf((*MockTokenManager)(nil).RevokeToken), ctx, token)
+}
+
 // ValidateAccessToken mocks base method.
 func (m *MockTokenManager) ValidateAccessToken(ctx context.Context, token string) (string, error) {
 	m.ctrl.T.Helper()

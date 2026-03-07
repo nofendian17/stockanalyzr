@@ -25,9 +25,9 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, user domain.User) (domain.User, error) {
 	q := `
-		INSERT INTO users (id, email, password_hash, full_name, disabled, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, email, password_hash, full_name, disabled, created_at, updated_at
+		INSERT INTO users (id, email, password_hash, full_name, phone_number, disabled, deleted_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, email, password_hash, full_name, phone_number, disabled, deleted_at, created_at, updated_at
 	`
 
 	created := domain.User{}
@@ -36,7 +36,9 @@ func (r *UserRepository) Create(ctx context.Context, user domain.User) (domain.U
 		user.Email,
 		user.PasswordHash,
 		user.FullName,
+		user.PhoneNumber,
 		user.Disabled,
+		user.DeletedAt,
 		user.CreatedAt,
 		user.UpdatedAt,
 	).Scan(
@@ -44,7 +46,9 @@ func (r *UserRepository) Create(ctx context.Context, user domain.User) (domain.U
 		&created.Email,
 		&created.PasswordHash,
 		&created.FullName,
+		&created.PhoneNumber,
 		&created.Disabled,
+		&created.DeletedAt,
 		&created.CreatedAt,
 		&created.UpdatedAt,
 	)
@@ -57,9 +61,9 @@ func (r *UserRepository) Create(ctx context.Context, user domain.User) (domain.U
 
 func (r *UserRepository) GetByID(ctx context.Context, id string) (domain.User, error) {
 	q := `
-		SELECT id, email, password_hash, full_name, disabled, created_at, updated_at
+		SELECT id, email, password_hash, full_name, phone_number, disabled, deleted_at, created_at, updated_at
 		FROM users
-		WHERE id = $1
+		WHERE id = $1 AND deleted_at IS NULL
 	`
 
 	user := domain.User{}
@@ -68,7 +72,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (domain.User, e
 		&user.Email,
 		&user.PasswordHash,
 		&user.FullName,
+		&user.PhoneNumber,
 		&user.Disabled,
+		&user.DeletedAt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -84,9 +90,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (domain.User, e
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.User, error) {
 	q := `
-		SELECT id, email, password_hash, full_name, disabled, created_at, updated_at
+		SELECT id, email, password_hash, full_name, phone_number, disabled, deleted_at, created_at, updated_at
 		FROM users
-		WHERE email = $1
+		WHERE email = $1 AND deleted_at IS NULL
 	`
 
 	user := domain.User{}
@@ -95,7 +101,9 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.U
 		&user.Email,
 		&user.PasswordHash,
 		&user.FullName,
+		&user.PhoneNumber,
 		&user.Disabled,
+		&user.DeletedAt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -109,21 +117,23 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.U
 	return user, nil
 }
 
-func (r *UserRepository) UpdateProfile(ctx context.Context, id string, fullName string, updatedAt time.Time) (domain.User, error) {
+func (r *UserRepository) UpdateProfile(ctx context.Context, id string, fullName string, phoneNumber string, updatedAt time.Time) (domain.User, error) {
 	q := `
 		UPDATE users
-		SET full_name = $2, updated_at = $3
-		WHERE id = $1
-		RETURNING id, email, password_hash, full_name, disabled, created_at, updated_at
+		SET full_name = $2, phone_number = $3, updated_at = $4
+		WHERE id = $1 AND deleted_at IS NULL
+		RETURNING id, email, password_hash, full_name, phone_number, disabled, deleted_at, created_at, updated_at
 	`
 
 	updated := domain.User{}
-	err := r.db.QueryRow(ctx, q, id, fullName, updatedAt).Scan(
+	err := r.db.QueryRow(ctx, q, id, fullName, phoneNumber, updatedAt).Scan(
 		&updated.ID,
 		&updated.Email,
 		&updated.PasswordHash,
 		&updated.FullName,
+		&updated.PhoneNumber,
 		&updated.Disabled,
+		&updated.DeletedAt,
 		&updated.CreatedAt,
 		&updated.UpdatedAt,
 	)
@@ -135,4 +145,83 @@ func (r *UserRepository) UpdateProfile(ctx context.Context, id string, fullName 
 	}
 
 	return updated, nil
+}
+
+// SoftDelete marks a user as deleted
+func (r *UserRepository) SoftDelete(ctx context.Context, id string, deletedAt time.Time) error {
+	q := `
+		UPDATE users
+		SET deleted_at = $2, updated_at = $2
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	result, err := r.db.Exec(ctx, q, id, deletedAt)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+// Restore removes soft delete status from a user
+func (r *UserRepository) Restore(ctx context.Context, id string) error {
+	q := `
+		UPDATE users
+		SET deleted_at = NULL, updated_at = $2
+		WHERE id = $1 AND deleted_at IS NOT NULL
+	`
+
+	result, err := r.db.Exec(ctx, q, id, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+// GetDeletedUsers retrieves paginated list of deleted users
+func (r *UserRepository) GetDeletedUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
+	q := `
+		SELECT id, email, password_hash, full_name, phone_number, disabled, deleted_at, created_at, updated_at
+		FROM users
+		WHERE deleted_at IS NOT NULL
+		ORDER BY deleted_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.db.Query(ctx, q, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next() {
+		var user domain.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.PasswordHash,
+			&user.FullName,
+			&user.PhoneNumber,
+			&user.Disabled,
+			&user.DeletedAt,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }

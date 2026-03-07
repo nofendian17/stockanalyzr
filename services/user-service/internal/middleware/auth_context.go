@@ -26,3 +26,8 @@ func UserIDFromContext(ctx context.Context) (string, bool) {
 	}
 	return authData.UserID, true
 }
+
+// ContextWithAuthData attaches auth data to the context (useful for testing).
+func ContextWithAuthData(ctx context.Context, data AuthData) context.Context {
+	return context.WithValue(ctx, authDataKey, data)
+}

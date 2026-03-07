@@ -14,4 +14,5 @@ type PasswordHasher interface {
 type TokenManager interface {
 	CreateTokenPair(ctx context.Context, userID string) (TokenPair, error)
 	ValidateAccessToken(ctx context.Context, token string) (string, error)
+	RevokeToken(ctx context.Context, token string) error
 }

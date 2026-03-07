@@ -25,9 +25,10 @@ type UserUsecase struct {
 var _ domain.UserUsecase = (*UserUsecase)(nil)
 
 type registerInput struct {
-	Email    string `validate:"required,email"`
-	Password string `validate:"required,min=8"`
-	FullName string `validate:"required"`
+	Email       string `validate:"required,email"`
+	Password    string `validate:"required,min=8"`
+	FullName    string `validate:"required"`
+	PhoneNumber string `validate:"required"`
 }
 
 type loginInput struct {
@@ -40,8 +41,22 @@ type profileInput struct {
 }
 
 type updateProfileInput struct {
-	UserID   string `validate:"required"`
-	FullName string `validate:"required"`
+	UserID      string `validate:"required"`
+	FullName    string `validate:"required"`
+	PhoneNumber string `validate:"required"`
+}
+
+type softDeleteInput struct {
+	UserID string `validate:"required"`
+}
+
+type restoreInput struct {
+	UserID string `validate:"required"`
+}
+
+type getDeletedInput struct {
+	Limit  int `validate:"min=1,max=100"`
+	Offset int `validate:"min=0"`
 }
 
 func NewUserUsecase(
@@ -60,14 +75,16 @@ func NewUserUsecase(
 	}
 }
 
-func (u *UserUsecase) Register(ctx context.Context, email, password, fullName string) (domain.User, error) {
+func (u *UserUsecase) Register(ctx context.Context, email, password, fullName, phoneNumber string) (domain.User, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	fullName = strings.TrimSpace(fullName)
+	phoneNumber = strings.TrimSpace(phoneNumber)
 
 	if err := u.validator.Struct(registerInput{
-		Email:    email,
-		Password: password,
-		FullName: fullName,
+		Email:       email,
+		Password:    password,
+		FullName:    fullName,
+		PhoneNumber: phoneNumber,
 	}); err != nil {
 		return domain.User{}, domain.ErrInvalidInput
 	}
@@ -91,6 +108,7 @@ func (u *UserUsecase) Register(ctx context.Context, email, password, fullName st
 		Email:        email,
 		PasswordHash: hashedPassword,
 		FullName:     fullName,
+		PhoneNumber:  phoneNumber,
 		Disabled:     false,
 		CreatedAt:    now,
 		UpdatedAt:    now,
@@ -119,6 +137,11 @@ func (u *UserUsecase) Login(ctx context.Context, email, password string) (domain
 			return domain.User{}, domain.TokenPair{}, domain.ErrInvalidCredential
 		}
 		return domain.User{}, domain.TokenPair{}, err
+	}
+
+	// Check if user is deleted
+	if user.IsDeleted() {
+		return domain.User{}, domain.TokenPair{}, domain.ErrUserNotFound
 	}
 
 	if user.Disabled {
@@ -165,15 +188,16 @@ func (u *UserUsecase) GetProfile(ctx context.Context, userID string) (domain.Use
 	return user, nil
 }
 
-func (u *UserUsecase) UpdateProfile(ctx context.Context, userID, fullName string) (domain.User, error) {
+func (u *UserUsecase) UpdateProfile(ctx context.Context, userID, fullName, phoneNumber string) (domain.User, error) {
 	userID = strings.TrimSpace(userID)
 	fullName = strings.TrimSpace(fullName)
+	phoneNumber = strings.TrimSpace(phoneNumber)
 
-	if err := u.validator.Struct(updateProfileInput{UserID: userID, FullName: fullName}); err != nil {
+	if err := u.validator.Struct(updateProfileInput{UserID: userID, FullName: fullName, PhoneNumber: phoneNumber}); err != nil {
 		return domain.User{}, domain.ErrInvalidInput
 	}
 
-	updated, err := u.repo.UpdateProfile(ctx, userID, fullName, time.Now().UTC())
+	updated, err := u.repo.UpdateProfile(ctx, userID, fullName, phoneNumber, time.Now().UTC())
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -184,4 +208,84 @@ func (u *UserUsecase) UpdateProfile(ctx context.Context, userID, fullName string
 	}
 
 	return updated, nil
+}
+
+func (u *UserUsecase) Logout(ctx context.Context, token string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return domain.ErrInvalidInput
+	}
+
+	// Delegate revocation to TokenManager
+	return u.tokenManager.RevokeToken(ctx, token)
+}
+
+// SoftDeleteUser soft deletes a user account
+func (u *UserUsecase) SoftDeleteUser(ctx context.Context, userID string) error {
+	userID = strings.TrimSpace(userID)
+	if err := u.validator.Struct(softDeleteInput{UserID: userID}); err != nil {
+		return domain.ErrInvalidInput
+	}
+
+	// Check if user exists and is not already deleted
+	user, err := u.repo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user.IsDeleted() {
+		return domain.ErrUserAlreadyDeleted
+	}
+
+	// Perform soft delete
+	deletedAt := time.Now().UTC()
+	if err := u.repo.SoftDelete(ctx, userID, deletedAt); err != nil {
+		return err
+	}
+
+	// Invalidate cache
+	if u.cache != nil {
+		_ = u.cache.Delete(ctx, userID)
+	}
+
+	return nil
+}
+
+// RestoreUser restores a soft deleted user
+func (u *UserUsecase) RestoreUser(ctx context.Context, userID string) error {
+	userID = strings.TrimSpace(userID)
+	if err := u.validator.Struct(restoreInput{UserID: userID}); err != nil {
+		return domain.ErrInvalidInput
+	}
+
+	// Check if user exists and is deleted
+	user, err := u.repo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if !user.IsDeleted() {
+		return domain.ErrUserNotDeleted
+	}
+
+	// Perform restore
+	if err := u.repo.Restore(ctx, userID); err != nil {
+		return err
+	}
+
+	// Invalidate cache
+	if u.cache != nil {
+		_ = u.cache.Delete(ctx, userID)
+	}
+
+	return nil
+}
+
+// GetDeletedUsers retrieves paginated list of deleted users
+func (u *UserUsecase) GetDeletedUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
+	if err := u.validator.Struct(getDeletedInput{Limit: limit, Offset: offset}); err != nil {
+		return nil, domain.ErrInvalidInput
+	}
+
+	return u.repo.GetDeletedUsers(ctx, limit, offset)
 }
