@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: stockanalyzr-postgres
+    environment:
+      POSTGRES_DB: stockanalyzr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d stockanalyzr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: stockanalyzr-redis
+    ports:
+      - "6379:6379"
+
+  user-service:
+    build:
+      context: ../services/user-service
+      dockerfile: Dockerfile
+    container_name: stockanalyzr-user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      USER_SERVICE_GRPC_PORT: "50051"
+      USER_SERVICE_POSTGRES_DSN: postgres://postgres:postgres@postgres:5432/stockanalyzr?sslmode=disable
+      USER_SERVICE_REDIS_DSN: redis://redis:6379/0
+      USER_SERVICE_JWT_SECRET: local-dev-secret
+      USER_SERVICE_JWT_ISSUER: user-service
+      USER_SERVICE_JWT_ACCESS_EXPIRY_MINUTES: "60"
+    ports:
+      - "50051:50051"
+
+volumes:
+  postgres_data:
