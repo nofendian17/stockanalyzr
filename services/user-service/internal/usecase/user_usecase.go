@@ -12,8 +12,8 @@ import (
 	"stockanalyzr/services/user-service/internal/domain"
 )
 
-// UserUsecase contains business rules for user operations.
-type UserUsecase struct {
+// UserInteractor contains business rules for user operations.
+type UserInteractor struct {
 	repo         domain.UserRepository
 	cache        domain.UserCache
 	hasher       domain.PasswordHasher
@@ -22,7 +22,7 @@ type UserUsecase struct {
 }
 
 // Compile-time interface compliance check.
-var _ domain.UserUsecase = (*UserUsecase)(nil)
+var _ domain.UserUsecase = (*UserInteractor)(nil)
 
 type registerInput struct {
 	Email       string `validate:"required,email"`
@@ -50,23 +50,14 @@ type softDeleteInput struct {
 	UserID string `validate:"required"`
 }
 
-type restoreInput struct {
-	UserID string `validate:"required"`
-}
-
-type getDeletedInput struct {
-	Limit  int `validate:"min=1,max=100"`
-	Offset int `validate:"min=0"`
-}
-
 func NewUserUsecase(
 	repo domain.UserRepository,
 	cache domain.UserCache,
 	hasher domain.PasswordHasher,
 	tokenManager domain.TokenManager,
 	val *validator.Validator,
-) *UserUsecase {
-	return &UserUsecase{
+) *UserInteractor {
+	return &UserInteractor{
 		repo:         repo,
 		cache:        cache,
 		hasher:       hasher,
@@ -75,7 +66,7 @@ func NewUserUsecase(
 	}
 }
 
-func (u *UserUsecase) Register(ctx context.Context, email, password, fullName, phoneNumber string) (domain.User, error) {
+func (u *UserInteractor) Register(ctx context.Context, email, password, fullName, phoneNumber string) (domain.User, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	fullName = strings.TrimSpace(fullName)
 	phoneNumber = strings.TrimSpace(phoneNumber)
@@ -125,7 +116,7 @@ func (u *UserUsecase) Register(ctx context.Context, email, password, fullName, p
 	return created, nil
 }
 
-func (u *UserUsecase) Login(ctx context.Context, email, password string) (domain.User, domain.TokenPair, error) {
+func (u *UserInteractor) Login(ctx context.Context, email, password string) (domain.User, domain.TokenPair, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if err := u.validator.Struct(loginInput{Email: email, Password: password}); err != nil {
 		return domain.User{}, domain.TokenPair{}, domain.ErrInvalidInput
@@ -160,7 +151,7 @@ func (u *UserUsecase) Login(ctx context.Context, email, password string) (domain
 	return user, tokenPair, nil
 }
 
-func (u *UserUsecase) GetProfile(ctx context.Context, userID string) (domain.User, error) {
+func (u *UserInteractor) GetProfile(ctx context.Context, userID string) (domain.User, error) {
 	userID = strings.TrimSpace(userID)
 	if err := u.validator.Struct(profileInput{UserID: userID}); err != nil {
 		return domain.User{}, domain.ErrInvalidInput
@@ -188,7 +179,7 @@ func (u *UserUsecase) GetProfile(ctx context.Context, userID string) (domain.Use
 	return user, nil
 }
 
-func (u *UserUsecase) UpdateProfile(ctx context.Context, userID, fullName, phoneNumber string) (domain.User, error) {
+func (u *UserInteractor) UpdateProfile(ctx context.Context, userID, fullName, phoneNumber string) (domain.User, error) {
 	userID = strings.TrimSpace(userID)
 	fullName = strings.TrimSpace(fullName)
 	phoneNumber = strings.TrimSpace(phoneNumber)
@@ -210,7 +201,7 @@ func (u *UserUsecase) UpdateProfile(ctx context.Context, userID, fullName, phone
 	return updated, nil
 }
 
-func (u *UserUsecase) Logout(ctx context.Context, token string) error {
+func (u *UserInteractor) Logout(ctx context.Context, token string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return domain.ErrInvalidInput
@@ -220,8 +211,8 @@ func (u *UserUsecase) Logout(ctx context.Context, token string) error {
 	return u.tokenManager.RevokeToken(ctx, token)
 }
 
-// SoftDeleteUser soft deletes a user account
-func (u *UserUsecase) SoftDeleteUser(ctx context.Context, userID string) error {
+// DeactivateAccount soft deletes a user account
+func (u *UserInteractor) DeactivateAccount(ctx context.Context, userID string) error {
 	userID = strings.TrimSpace(userID)
 	if err := u.validator.Struct(softDeleteInput{UserID: userID}); err != nil {
 		return domain.ErrInvalidInput
@@ -249,43 +240,4 @@ func (u *UserUsecase) SoftDeleteUser(ctx context.Context, userID string) error {
 	}
 
 	return nil
-}
-
-// RestoreUser restores a soft deleted user
-func (u *UserUsecase) RestoreUser(ctx context.Context, userID string) error {
-	userID = strings.TrimSpace(userID)
-	if err := u.validator.Struct(restoreInput{UserID: userID}); err != nil {
-		return domain.ErrInvalidInput
-	}
-
-	// Check if user exists and is deleted
-	user, err := u.repo.GetByID(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	if !user.IsDeleted() {
-		return domain.ErrUserNotDeleted
-	}
-
-	// Perform restore
-	if err := u.repo.Restore(ctx, userID); err != nil {
-		return err
-	}
-
-	// Invalidate cache
-	if u.cache != nil {
-		_ = u.cache.Delete(ctx, userID)
-	}
-
-	return nil
-}
-
-// GetDeletedUsers retrieves paginated list of deleted users
-func (u *UserUsecase) GetDeletedUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
-	if err := u.validator.Struct(getDeletedInput{Limit: limit, Offset: offset}); err != nil {
-		return nil, domain.ErrInvalidInput
-	}
-
-	return u.repo.GetDeletedUsers(ctx, limit, offset)
 }

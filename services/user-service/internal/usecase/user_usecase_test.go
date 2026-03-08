@@ -16,7 +16,7 @@ import (
 )
 
 func newTestUsecase(t *testing.T) (
-	*usecase.UserUsecase,
+	*usecase.UserInteractor,
 	*mocks.MockUserRepository,
 	*mocks.MockUserCache,
 	*mocks.MockPasswordHasher,
@@ -296,91 +296,4 @@ func TestSoftDeleteUser_UserNotFound(t *testing.T) {
 	err := uc.SoftDeleteUser(ctx, userID)
 	assert.Error(t, err)
 	assert.Equal(t, domain.ErrUserNotFound, err)
-}
-
-func TestRestoreUser_Success(t *testing.T) {
-	uc, repo, cache, _, _ := newTestUsecase(t)
-	ctx := context.Background()
-	userID := "user123"
-	deletedAt := time.Now().UTC()
-
-	// Mock existing user (deleted)
-	existingUser := domain.User{
-		ID:        userID,
-		Email:     "test@example.com",
-		DeletedAt: &deletedAt,
-	}
-
-	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
-	repo.EXPECT().Restore(ctx, userID).Return(nil)
-	cache.EXPECT().Delete(ctx, userID).Return(nil)
-
-	err := uc.RestoreUser(ctx, userID)
-	assert.NoError(t, err)
-}
-
-func TestRestoreUser_NotDeleted(t *testing.T) {
-	uc, repo, _, _, _ := newTestUsecase(t)
-	ctx := context.Background()
-	userID := "user123"
-
-	// Mock existing user (not deleted)
-	existingUser := domain.User{
-		ID:        userID,
-		Email:     "test@example.com",
-		DeletedAt: nil,
-	}
-
-	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
-
-	err := uc.RestoreUser(ctx, userID)
-	assert.Error(t, err)
-	assert.Equal(t, domain.ErrUserNotDeleted, err)
-}
-
-func TestGetDeletedUsers_Success(t *testing.T) {
-	uc, repo, _, _, _ := newTestUsecase(t)
-	ctx := context.Background()
-
-	deletedAt := time.Now().UTC()
-	deletedUsers := []domain.User{
-		{
-			ID:        "user1",
-			Email:     "deleted1@example.com",
-			DeletedAt: &deletedAt,
-		},
-		{
-			ID:        "user2",
-			Email:     "deleted2@example.com",
-			DeletedAt: &deletedAt,
-		},
-	}
-
-	repo.EXPECT().GetDeletedUsers(ctx, 10, 0).Return(deletedUsers, nil)
-
-	users, err := uc.GetDeletedUsers(ctx, 10, 0)
-	require.NoError(t, err)
-	assert.Len(t, users, 2)
-	assert.True(t, users[0].IsDeleted())
-	assert.True(t, users[1].IsDeleted())
-}
-
-func TestGetDeletedUsers_InvalidInput(t *testing.T) {
-	uc, _, _, _, _ := newTestUsecase(t)
-	ctx := context.Background()
-
-	// Test with invalid limit
-	_, err := uc.GetDeletedUsers(ctx, 0, 0)
-	assert.Error(t, err)
-	assert.Equal(t, domain.ErrInvalidInput, err)
-
-	// Test with invalid limit > 100
-	_, err = uc.GetDeletedUsers(ctx, 101, 0)
-	assert.Error(t, err)
-	assert.Equal(t, domain.ErrInvalidInput, err)
-
-	// Test with negative offset
-	_, err = uc.GetDeletedUsers(ctx, 10, -1)
-	assert.Error(t, err)
-	assert.Equal(t, domain.ErrInvalidInput, err)
 }

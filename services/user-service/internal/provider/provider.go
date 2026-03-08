@@ -9,10 +9,10 @@ import (
 	"stockanalyzr/pkg/database"
 	"stockanalyzr/pkg/validator"
 	"stockanalyzr/services/user-service/internal/config"
+	transportgrpc "stockanalyzr/services/user-service/internal/delivery/grpc"
 	"stockanalyzr/services/user-service/internal/domain"
 	rediscache "stockanalyzr/services/user-service/internal/infrastructure/cache"
 	"stockanalyzr/services/user-service/internal/infrastructure/persistence"
-	transportgrpc "stockanalyzr/services/user-service/internal/interface/grpc"
 	"stockanalyzr/services/user-service/internal/security"
 	"stockanalyzr/services/user-service/internal/usecase"
 )
@@ -64,7 +64,7 @@ var Package = do.Package(
 	}),
 
 	// --- Usecase ---
-	do.Lazy(func(i do.Injector) (*usecase.UserUsecase, error) {
+	do.Lazy(func(i do.Injector) (*usecase.UserInteractor, error) {
 		return usecase.NewUserUsecase(
 			do.MustInvoke[domain.UserRepository](i),
 			do.MustInvoke[domain.UserCache](i),
@@ -73,7 +73,7 @@ var Package = do.Package(
 			do.MustInvoke[*validator.Validator](i),
 		), nil
 	}),
-	do.Bind[*usecase.UserUsecase, domain.UserUsecase](),
+	do.Bind[*usecase.UserInteractor, domain.UserUsecase](),
 
 	// --- Handler ---
 	do.Lazy(func(i do.Injector) (*transportgrpc.UserHandler, error) {

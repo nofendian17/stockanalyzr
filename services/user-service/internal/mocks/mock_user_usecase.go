@@ -41,21 +41,6 @@ func (m *MockUserUsecase) EXPECT() *MockUserUsecaseMockRecorder {
 	return m.recorder
 }
 
-// GetDeletedUsers mocks base method.
-func (m *MockUserUsecase) GetDeletedUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeletedUsers", ctx, limit, offset)
-	ret0, _ := ret[0].([]domain.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDeletedUsers indicates an expected call of GetDeletedUsers.
-func (mr *MockUserUsecaseMockRecorder) GetDeletedUsers(ctx, limit, offset any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeletedUsers", reflect.TypeOf((*MockUserUsecase)(nil).GetDeletedUsers), ctx, limit, offset)
-}
-
 // GetProfile mocks base method.
 func (m *MockUserUsecase) GetProfile(ctx context.Context, userID string) (domain.User, error) {
 	m.ctrl.T.Helper()
@@ -114,20 +99,6 @@ func (m *MockUserUsecase) Register(ctx context.Context, email, password, fullNam
 func (mr *MockUserUsecaseMockRecorder) Register(ctx, email, password, fullName, phoneNumber any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUserUsecase)(nil).Register), ctx, email, password, fullName, phoneNumber)
-}
-
-// RestoreUser mocks base method.
-func (m *MockUserUsecase) RestoreUser(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RestoreUser", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RestoreUser indicates an expected call of RestoreUser.
-func (mr *MockUserUsecaseMockRecorder) RestoreUser(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreUser", reflect.TypeOf((*MockUserUsecase)(nil).RestoreUser), ctx, userID)
 }
 
 // SoftDeleteUser mocks base method.

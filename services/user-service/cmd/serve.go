@@ -10,9 +10,9 @@ import (
 	userv1 "stockanalyzr/pkg/gen"
 	"stockanalyzr/pkg/logger"
 	"stockanalyzr/services/user-service/internal/config"
+	transportgrpc "stockanalyzr/services/user-service/internal/delivery/grpc"
 	"stockanalyzr/services/user-service/internal/domain"
 	"stockanalyzr/services/user-service/internal/infrastructure/server"
-	transportgrpc "stockanalyzr/services/user-service/internal/interface/grpc"
 	"stockanalyzr/services/user-service/internal/middleware"
 	"stockanalyzr/services/user-service/internal/provider"
 )
