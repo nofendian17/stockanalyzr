@@ -246,7 +246,7 @@ func TestLogout_InvalidInput(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrInvalidInput)
 }
 
-func TestSoftDeleteUser_Success(t *testing.T) {
+func TestDeactivateAccount_Success(t *testing.T) {
 	uc, repo, cache, _, _ := newTestUsecase(t)
 	ctx := context.Background()
 	userID := "user123"
@@ -262,11 +262,11 @@ func TestSoftDeleteUser_Success(t *testing.T) {
 	repo.EXPECT().SoftDelete(ctx, userID, gomock.Any()).Return(nil)
 	cache.EXPECT().Delete(ctx, userID).Return(nil)
 
-	err := uc.SoftDeleteUser(ctx, userID)
+	err := uc.DeactivateAccount(ctx, userID)
 	assert.NoError(t, err)
 }
 
-func TestSoftDeleteUser_AlreadyDeleted(t *testing.T) {
+func TestDeactivateAccount_AlreadyDeleted(t *testing.T) {
 	uc, repo, _, _, _ := newTestUsecase(t)
 	ctx := context.Background()
 	userID := "user123"
@@ -281,19 +281,19 @@ func TestSoftDeleteUser_AlreadyDeleted(t *testing.T) {
 
 	repo.EXPECT().GetByID(ctx, userID).Return(existingUser, nil)
 
-	err := uc.SoftDeleteUser(ctx, userID)
+	err := uc.DeactivateAccount(ctx, userID)
 	assert.Error(t, err)
 	assert.Equal(t, domain.ErrUserAlreadyDeleted, err)
 }
 
-func TestSoftDeleteUser_UserNotFound(t *testing.T) {
+func TestDeactivateAccount_UserNotFound(t *testing.T) {
 	uc, repo, _, _, _ := newTestUsecase(t)
 	ctx := context.Background()
 	userID := "user123"
 
 	repo.EXPECT().GetByID(ctx, userID).Return(domain.User{}, domain.ErrUserNotFound)
 
-	err := uc.SoftDeleteUser(ctx, userID)
+	err := uc.DeactivateAccount(ctx, userID)
 	assert.Error(t, err)
 	assert.Equal(t, domain.ErrUserNotFound, err)
 }

@@ -101,18 +101,18 @@ func (mr *MockUserUsecaseMockRecorder) Register(ctx, email, password, fullName, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUserUsecase)(nil).Register), ctx, email, password, fullName, phoneNumber)
 }
 
-// SoftDeleteUser mocks base method.
-func (m *MockUserUsecase) SoftDeleteUser(ctx context.Context, userID string) error {
+// DeactivateAccount mocks base method.
+func (m *MockUserUsecase) DeactivateAccount(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SoftDeleteUser", ctx, userID)
+	ret := m.ctrl.Call(m, "DeactivateAccount", ctx, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SoftDeleteUser indicates an expected call of SoftDeleteUser.
-func (mr *MockUserUsecaseMockRecorder) SoftDeleteUser(ctx, userID any) *gomock.Call {
+// DeactivateAccount indicates an expected call of DeactivateAccount.
+func (mr *MockUserUsecaseMockRecorder) DeactivateAccount(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftDeleteUser", reflect.TypeOf((*MockUserUsecase)(nil).SoftDeleteUser), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateAccount", reflect.TypeOf((*MockUserUsecase)(nil).DeactivateAccount), ctx, userID)
 }
 
 // UpdateProfile mocks base method.
