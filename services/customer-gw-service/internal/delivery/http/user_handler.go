@@ -228,9 +228,14 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 //	@Failure		401	{object}	response.Response	"Unauthorized"
 //	@Router			/api/v1/auth/logout [post]
 func (h *UserHandler) Logout(c *gin.Context) {
-	_, ok := middleware.GetAuthUser(c)
+	authUser, ok := middleware.GetAuthUser(c)
 	if !ok {
 		response.Unauthorized(c, "")
+		return
+	}
+
+	if err := h.uc.Logout(c.Request.Context(), authUser.AccessToken); err != nil {
+		h.handleDomainError(c, err)
 		return
 	}
 
