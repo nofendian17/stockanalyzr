@@ -19,3 +19,8 @@ type UpdateProfileRequest struct {
 	FullName    string `json:"full_name"`
 	PhoneNumber string `json:"phone_number"`
 }
+
+// RefreshTokenRequest represents the refresh token request body.
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}

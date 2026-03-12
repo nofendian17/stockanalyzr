@@ -137,3 +137,18 @@ func (mr *MockTokenManagerMockRecorder) ValidateAccessToken(ctx, token any) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAccessToken", reflect.TypeOf((*MockTokenManager)(nil).ValidateAccessToken), ctx, token)
 }
+
+// ValidateRefreshToken mocks base method.
+func (m *MockTokenManager) ValidateRefreshToken(ctx context.Context, token string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateRefreshToken", ctx, token)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateRefreshToken indicates an expected call of ValidateRefreshToken.
+func (mr *MockTokenManagerMockRecorder) ValidateRefreshToken(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateRefreshToken", reflect.TypeOf((*MockTokenManager)(nil).ValidateRefreshToken), ctx, token)
+}

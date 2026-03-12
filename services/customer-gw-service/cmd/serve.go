@@ -82,6 +82,7 @@ func setupRoutes(r *gin.Engine, handler *http.UserHandler, uc domain.UserUsecase
 	// Public routes
 	v1.POST("/auth/register", handler.Register)
 	v1.POST("/auth/login", handler.Login)
+	v1.POST("/auth/refresh", handler.RefreshToken)
 
 	// Protected routes
 	protected := v1.Group("")

@@ -70,6 +70,25 @@ func (u *UserInteractor) Login(ctx context.Context, email, password string) (dom
 	return toDomainUser(resp.User), toDomainAuthToken(resp.AuthToken), nil
 }
 
+// RefreshToken handles token refresh.
+func (u *UserInteractor) RefreshToken(ctx context.Context, refreshToken string) (domain.AuthToken, error) {
+	refreshToken = strings.TrimSpace(refreshToken)
+	if refreshToken == "" {
+		return domain.AuthToken{}, domain.ErrInvalidInput
+	}
+
+	req := &userpb.RefreshTokenRequest{
+		RefreshToken: refreshToken,
+	}
+
+	resp, err := u.client.RefreshToken(ctx, req)
+	if err != nil {
+		return domain.AuthToken{}, mapGRPCError(err)
+	}
+
+	return toDomainAuthToken(resp.AuthToken), nil
+}
+
 // GetProfile retrieves a user profile.
 func (u *UserInteractor) GetProfile(ctx context.Context, userID string) (domain.User, error) {
 	userID = strings.TrimSpace(userID)

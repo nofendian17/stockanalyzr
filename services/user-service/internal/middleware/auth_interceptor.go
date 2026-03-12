@@ -13,8 +13,9 @@ import (
 )
 
 var publicMethods = map[string]struct{}{
-	"/user.v1.UserService/Register": {},
-	"/user.v1.UserService/Login":    {},
+	"/user.v1.UserService/Register":     {},
+	"/user.v1.UserService/Login":        {},
+	"/user.v1.UserService/RefreshToken": {},
 }
 
 // AuthUnaryInterceptor validates bearer JWT for protected methods.

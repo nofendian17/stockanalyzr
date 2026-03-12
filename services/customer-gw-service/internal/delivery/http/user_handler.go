@@ -109,6 +109,43 @@ func (h *UserHandler) Login(c *gin.Context) {
 	response.Success(c, http.StatusOK, data)
 }
 
+// RefreshToken handles token refresh.
+//
+//	@Summary		Refresh access token
+//	@Description	Refresh access token using a valid refresh token
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.RefreshTokenRequest	true	"Refresh token"
+//	@Success		200		{object}	response.Response{data=dto.RefreshTokenResponse}	"Token refreshed successfully"
+//	@Failure		400		{object}	response.Response	"Invalid input"
+//	@Failure		401		{object}	response.Response	"Invalid or expired refresh token"
+//	@Failure		500		{object}	response.Response	"Internal server error"
+//	@Router			/api/v1/auth/refresh [post]
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	var req dto.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	token, err := h.uc.RefreshToken(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		h.handleDomainError(c, err)
+		return
+	}
+
+	data := dto.RefreshTokenResponse{
+		AuthToken: dto.AuthTokenResponse{
+			AccessToken:                 token.AccessToken,
+			AccessTokenExpiresAtUnixMs:  token.AccessTokenExpiresAtUnixMs,
+			RefreshToken:                token.RefreshToken,
+			RefreshTokenExpiresAtUnixMs: token.RefreshTokenExpiresAtUnixMs,
+		},
+	}
+	response.Success(c, http.StatusOK, data)
+}
+
 // GetProfile handles getting the authenticated user's profile.
 //
 //	@Summary		Get user profile

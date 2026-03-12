@@ -7,6 +7,7 @@ option go_package = "stockanalyzr/pkg/gen;userv1";
 service UserService {
 	rpc Register(RegisterRequest) returns (RegisterResponse);
 	rpc Login(LoginRequest) returns (LoginResponse);
+	rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
 	rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
 	rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
 	rpc DeactivateAccount(DeactivateAccountRequest) returns (DeactivateAccountResponse);
@@ -49,6 +50,14 @@ message LoginRequest {
 message LoginResponse {
 	User user = 1;
 	AuthToken auth_token = 2;
+}
+
+message RefreshTokenRequest {
+	string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+	AuthToken auth_token = 1;
 }
 
 message LogoutRequest {

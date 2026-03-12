@@ -50,3 +50,8 @@ type DeactivateResponse struct {
 type LogoutResponse struct {
 	Success bool `json:"success"`
 }
+
+// RefreshTokenResponse represents the refresh token response data.
+type RefreshTokenResponse struct {
+	AuthToken AuthTokenResponse `json:"auth_token"`
+}

@@ -8,6 +8,7 @@ import "context"
 type UserUsecase interface {
 	Register(ctx context.Context, email, password, fullName, phoneNumber string) (User, error)
 	Login(ctx context.Context, email, password string) (User, TokenPair, error)
+	RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error)
 	GetProfile(ctx context.Context, userID string) (User, error)
 	UpdateProfile(ctx context.Context, userID, fullName, phoneNumber string) (User, error)
 	DeactivateAccount(ctx context.Context, userID string) error

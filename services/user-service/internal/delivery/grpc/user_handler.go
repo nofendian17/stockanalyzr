@@ -48,6 +48,26 @@ func (h *UserHandler) Login(ctx context.Context, req *userv1.LoginRequest) (*use
 	}, nil
 }
 
+func (h *UserHandler) RefreshToken(ctx context.Context, req *userv1.RefreshTokenRequest) (*userv1.RefreshTokenResponse, error) {
+	if req.GetRefreshToken() == "" {
+		return nil, status.Error(codes.InvalidArgument, "refresh_token is required")
+	}
+
+	tokenPair, err := h.uc.RefreshToken(ctx, req.GetRefreshToken())
+	if err != nil {
+		return nil, toStatusErr(err)
+	}
+
+	return &userv1.RefreshTokenResponse{
+		AuthToken: &userv1.AuthToken{
+			AccessToken:                 tokenPair.AccessToken,
+			AccessTokenExpiresAtUnixMs:  tokenPair.AccessTokenExpiresAt.UnixMilli(),
+			RefreshToken:                tokenPair.RefreshToken,
+			RefreshTokenExpiresAtUnixMs: tokenPair.RefreshTokenExpiresAt.UnixMilli(),
+		},
+	}, nil
+}
+
 func (h *UserHandler) GetProfile(ctx context.Context, req *userv1.GetProfileRequest) (*userv1.GetProfileResponse, error) {
 	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
@@ -141,6 +161,7 @@ var userErrorMap = grpcerr.ErrorMap{
 	domain.ErrInvalidInput:       codes.InvalidArgument,
 	domain.ErrUserNotFound:       codes.NotFound,
 	domain.ErrInvalidCredential:  codes.Unauthenticated,
+	domain.ErrUnauthorized:       codes.Unauthenticated,
 	domain.ErrEmailAlreadyExists: codes.AlreadyExists,
 	domain.ErrUserDisabled:       codes.PermissionDenied,
 	domain.ErrUserAlreadyDeleted: codes.FailedPrecondition,

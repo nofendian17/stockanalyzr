@@ -151,6 +151,49 @@ func (u *UserInteractor) Login(ctx context.Context, email, password string) (dom
 	return user, tokenPair, nil
 }
 
+func (u *UserInteractor) RefreshToken(ctx context.Context, refreshToken string) (domain.TokenPair, error) {
+	refreshToken = strings.TrimSpace(refreshToken)
+	if refreshToken == "" {
+		return domain.TokenPair{}, domain.ErrInvalidInput
+	}
+
+	// Validate refresh token and extract userID
+	userID, err := u.tokenManager.ValidateRefreshToken(ctx, refreshToken)
+	if err != nil {
+		return domain.TokenPair{}, domain.ErrUnauthorized
+	}
+
+	// Verify user exists and is active
+	user, err := u.repo.GetByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return domain.TokenPair{}, domain.ErrUnauthorized
+		}
+		return domain.TokenPair{}, err
+	}
+
+	if user.IsDeleted() {
+		return domain.TokenPair{}, domain.ErrUnauthorized
+	}
+
+	if user.Disabled {
+		return domain.TokenPair{}, domain.ErrUserDisabled
+	}
+
+	// Revoke the old refresh token
+	if err := u.tokenManager.RevokeToken(ctx, refreshToken); err != nil {
+		return domain.TokenPair{}, err
+	}
+
+	// Create new token pair
+	tokenPair, err := u.tokenManager.CreateTokenPair(ctx, userID)
+	if err != nil {
+		return domain.TokenPair{}, err
+	}
+
+	return tokenPair, nil
+}
+
 func (u *UserInteractor) GetProfile(ctx context.Context, userID string) (domain.User, error) {
 	userID = strings.TrimSpace(userID)
 	if err := u.validator.Struct(profileInput{UserID: userID}); err != nil {

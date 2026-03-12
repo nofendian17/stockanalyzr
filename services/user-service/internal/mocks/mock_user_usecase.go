@@ -41,6 +41,20 @@ func (m *MockUserUsecase) EXPECT() *MockUserUsecaseMockRecorder {
 	return m.recorder
 }
 
+// DeactivateAccount mocks base method.
+func (m *MockUserUsecase) DeactivateAccount(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeactivateAccount", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeactivateAccount indicates an expected call of DeactivateAccount.
+func (mr *MockUserUsecaseMockRecorder) DeactivateAccount(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateAccount", reflect.TypeOf((*MockUserUsecase)(nil).DeactivateAccount), ctx, userID)
+}
+
 // GetProfile mocks base method.
 func (m *MockUserUsecase) GetProfile(ctx context.Context, userID string) (domain.User, error) {
 	m.ctrl.T.Helper()
@@ -86,6 +100,21 @@ func (mr *MockUserUsecaseMockRecorder) Logout(ctx, token any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockUserUsecase)(nil).Logout), ctx, token)
 }
 
+// RefreshToken mocks base method.
+func (m *MockUserUsecase) RefreshToken(ctx context.Context, refreshToken string) (domain.TokenPair, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
+	ret0, _ := ret[0].(domain.TokenPair)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshToken indicates an expected call of RefreshToken.
+func (mr *MockUserUsecaseMockRecorder) RefreshToken(ctx, refreshToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockUserUsecase)(nil).RefreshToken), ctx, refreshToken)
+}
+
 // Register mocks base method.
 func (m *MockUserUsecase) Register(ctx context.Context, email, password, fullName, phoneNumber string) (domain.User, error) {
 	m.ctrl.T.Helper()
@@ -99,20 +128,6 @@ func (m *MockUserUsecase) Register(ctx context.Context, email, password, fullNam
 func (mr *MockUserUsecaseMockRecorder) Register(ctx, email, password, fullName, phoneNumber any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUserUsecase)(nil).Register), ctx, email, password, fullName, phoneNumber)
-}
-
-// DeactivateAccount mocks base method.
-func (m *MockUserUsecase) DeactivateAccount(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeactivateAccount", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeactivateAccount indicates an expected call of DeactivateAccount.
-func (mr *MockUserUsecaseMockRecorder) DeactivateAccount(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateAccount", reflect.TypeOf((*MockUserUsecase)(nil).DeactivateAccount), ctx, userID)
 }
 
 // UpdateProfile mocks base method.

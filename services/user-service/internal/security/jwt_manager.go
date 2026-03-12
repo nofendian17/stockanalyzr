@@ -60,6 +60,14 @@ func (m *JWTManager) CreateTokenPair(_ context.Context, userID string) (domain.T
 }
 
 func (m *JWTManager) ValidateAccessToken(ctx context.Context, tokenString string) (string, error) {
+	return m.validateToken(ctx, tokenString, "access")
+}
+
+func (m *JWTManager) ValidateRefreshToken(ctx context.Context, tokenString string) (string, error) {
+	return m.validateToken(ctx, tokenString, "refresh")
+}
+
+func (m *JWTManager) validateToken(ctx context.Context, tokenString, tokenType string) (string, error) {
 	// First check if token is blacklisted
 	isBlacklisted, err := m.redisClient.Exists(ctx, blacklistPrefix+tokenString).Result()
 	if err == nil && isBlacklisted > 0 {
@@ -79,6 +87,12 @@ func (m *JWTManager) ValidateAccessToken(ctx context.Context, tokenString string
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return "", errors.New("invalid token claims")
+	}
+
+	// Verify token type
+	claimType, ok := claims["type"].(string)
+	if !ok || claimType != tokenType {
+		return "", errors.New("invalid token type")
 	}
 
 	sub, ok := claims["sub"].(string)
